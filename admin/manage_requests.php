@@ -21,9 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply_message'], $_PO
         $stmt->bind_param("ssi", $reply_message, $reply_date, $request_id);
 
         if ($stmt->execute()) {
-            $success = "Reply sent and status updated.";
+            $success = "Reply sent and status updated successfully!";
         } else {
-            $error = "Error sending reply.";
+            $error = "Error sending reply. Please try again.";
         }
         $stmt->close();
     } else {
@@ -32,7 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply_message'], $_PO
 }
 
 // Fetch all requests
-$query = "SELECT wr.id, wr.user_id, u.full_name, wr.request_date, wr.request_message, wr.reply_message, wr.reply_date, wr.status 
+$query = "SELECT wr.id, wr.user_id, u.full_name, wr.request_date, wr.request_message, 
+                 wr.reply_message, wr.reply_date, wr.status 
           FROM wifi_requests wr
           JOIN users u ON wr.user_id = u.id
           ORDER BY wr.request_date DESC";
@@ -43,53 +44,206 @@ $result = $conn->query($query);
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Manage WiFi Requests - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage WiFi Requests - Admin Dashboard</title>
   <link rel="stylesheet" href="../css/style.css">
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; }
+    :root {
+      --dark: #16151A;
+      --primary: #F67011;
+      --primary-dark: #873800;
+      --gray-dark: #262626;
+      --gray: #878787;
+      --light: #FFE4D0;
+      --success: #2e7d32;
+      --error: #c62828;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--light);
+      margin: 0;
+      padding: 0;
+      color: var(--gray-dark);
+      line-height: 1.6;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, var(--dark), var(--gray-dark));
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
     .container {
-      width: 95%; max-width: 1200px; margin: 30px auto; background: #fff;
-      padding: 25px; border-radius: 8px; box-shadow: 0 0 10px #ccc;
+      width: 95%;
+      max-width: 1200px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     }
-    h2 { text-align: center; color: #003366; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    
+    h2 {
+      text-align: center;
+      color: var(--primary-dark);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--primary);
+    }
+    
+    .alert {
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border-radius: 6px;
+      text-align: center;
+      border-left: 4px solid;
+    }
+    
+    .alert-success {
+      background: rgba(46, 125, 50, 0.1);
+      color: var(--success);
+      border-left-color: var(--success);
+    }
+    
+    .alert-error {
+      background: rgba(198, 40, 40, 0.1);
+      color: var(--error);
+      border-left-color: var(--error);
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
     th, td {
-      padding: 12px; border: 1px solid #ccc; text-align: left;
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
     }
-    th { background: #003366; color: white; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
+    
+    th {
+      background: var(--primary-dark);
+      color: white;
+      font-weight: 600;
+    }
+    
+    tr:nth-child(even) {
+      background-color: rgba(255, 228, 208, 0.3);
+    }
+    
+    tr:hover {
+      background-color: rgba(246, 112, 17, 0.05);
+    }
+    
     textarea {
-      width: 100%; height: 80px; resize: vertical; padding: 8px;
-      margin-top: 10px; margin-bottom: 10px;
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      margin: 0.5rem 0;
+      border: 1px solid var(--gray);
+      border-radius: 6px;
+      resize: vertical;
+      font-family: inherit;
+      transition: all 0.3s;
     }
-    button {
-      background-color: #0072ce; color: white; padding: 8px 15px;
-      border: none; border-radius: 4px; cursor: pointer;
+    
+    textarea:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(246, 112, 17, 0.15);
     }
-    button:hover { background-color: #005baa; }
-    .message { padding: 10px; margin-bottom: 15px; border-radius: 5px; }
-    .success { background-color: #d4edda; color: #155724; }
-    .error { background-color: #f8d7da; color: #721c24; }
+    
+    .btn {
+      background: var(--primary);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(135, 56, 0, 0.2);
+    }
+    
+    .status {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .status-pending {
+      background: rgba(255, 193, 7, 0.2);
+      color: #ff9800;
+    }
+    
+    .status-replied {
+      background: rgba(46, 125, 50, 0.2);
+      color: var(--success);
+    }
+    
+    footer {
+      background: var(--dark);
+      color: white;
+      text-align: center;
+      padding: 1.5rem;
+      margin-top: 3rem;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 1.25rem;
+        width: 100%;
+        border-radius: 0;
+      }
+      
+      table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+      
+      th, td {
+        padding: 0.75rem;
+      }
+    }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <h2>Manage WiFi Access Requests</h2>
+<header class="header">
+  <h1>WiFi Access Requests Management</h1>
+</header>
 
+<main class="container">
   <?php if ($success): ?>
-    <div class="message success"><?= htmlspecialchars($success) ?></div>
+    <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
   <?php endif; ?>
+  
   <?php if ($error): ?>
-    <div class="message error"><?= htmlspecialchars($error) ?></div>
+    <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
   <?php endif; ?>
+
+  <h2>All WiFi Requests</h2>
 
   <table>
     <thead>
       <tr>
         <th>User</th>
         <th>Date Requested</th>
-        <th>Message</th>
+        <th>Request Message</th>
         <th>Reply</th>
         <th>Date Replied</th>
         <th>Status</th>
@@ -108,29 +262,39 @@ $result = $conn->query($query);
                 <?= nl2br(htmlspecialchars($row['reply_message'])) ?>
               <?php else: ?>
                 <form method="post">
-                  <textarea name="reply_message" required></textarea>
+                  <textarea name="reply_message" required placeholder="Enter your reply message..."></textarea>
                   <input type="hidden" name="request_id" value="<?= $row['id'] ?>">
-                  <button type="submit">Send Reply</button>
+                  <button type="submit" class="btn">Send Reply</button>
                 </form>
               <?php endif; ?>
             </td>
             <td><?= $row['reply_date'] ? htmlspecialchars($row['reply_date']) : '-' ?></td>
-            <td><?= htmlspecialchars($row['status']) ?></td>
+            <td>
+              <span class="status status-<?= strtolower($row['status']) ?>">
+                <?= htmlspecialchars($row['status']) ?>
+              </span>
+            </td>
             <td>
               <?php if (!$row['reply_message']): ?>
-                <em>Awaiting reply</em>
+                <em>Pending Response</em>
               <?php else: ?>
-                <strong>Replied</strong>
+                <strong>Completed</strong>
               <?php endif; ?>
             </td>
           </tr>
         <?php endwhile; ?>
       <?php else: ?>
-        <tr><td colspan="7">No WiFi requests found.</td></tr>
+        <tr>
+          <td colspan="7" style="text-align: center;">No WiFi requests found.</td>
+        </tr>
       <?php endif; ?>
     </tbody>
   </table>
-</div>
+</main>
+
+<footer>
+  <p>Bank WiFi Management System &copy; <?= date('Y') ?></p>
+</footer>
 
 </body>
 </html>
